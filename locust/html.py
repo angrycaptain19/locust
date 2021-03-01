@@ -29,7 +29,7 @@ def get_html_report(environment, show_download_link=True):
     if environment.host:
         host = environment.host
     elif environment.runner.user_classes:
-        all_hosts = set([l.host for l in environment.runner.user_classes])
+        all_hosts = {l.host for l in environment.runner.user_classes}
         if len(all_hosts) == 1:
             host = list(all_hosts)[0]
 
@@ -60,7 +60,7 @@ def get_html_report(environment, show_download_link=True):
             static_css.append(f.read())
         static_css.extend(["", ""])
 
-    res = render_template(
+    return render_template(
         "report.html",
         int=int,
         round=round,
@@ -75,5 +75,3 @@ def get_html_report(environment, show_download_link=True):
         static_css="\n".join(static_css),
         show_download_link=show_download_link,
     )
-
-    return res

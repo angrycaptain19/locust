@@ -43,7 +43,6 @@ class StagesShape(LoadTestShape):
 
         for stage in self.stages:
             if run_time < stage["duration"]:
-                tick_data = (stage["users"], stage["spawn_rate"])
-                return tick_data
+                return stage["users"], stage["spawn_rate"]
 
         return None

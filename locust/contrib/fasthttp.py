@@ -108,10 +108,7 @@ class FastHttpSession:
         try:
             return self.client.urlopen(url, method=method, **kwargs)
         except FAILURE_EXCEPTIONS as e:
-            if hasattr(e, "response"):
-                r = e.response
-            else:
-                r = ErrorResponse()
+            r = e.response if hasattr(e, "response") else ErrorResponse()
             r.error = e
             return r
 

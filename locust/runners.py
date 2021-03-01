@@ -138,7 +138,7 @@ class Runner:
         returns a list "bucket" with the weighted users
         """
         bucket = []
-        weight_sum = sum([user.weight for user in self.user_classes])
+        weight_sum = sum(user.weight for user in self.user_classes)
         residuals = {}
         for user in self.user_classes:
             if self.environment.host is not None:
@@ -185,12 +185,18 @@ class Runner:
             while True:
                 if not bucket:
                     logger.info(
-                        "All users spawned: %s (%i total running)"
-                        % (
-                            ", ".join(["%s: %d" % (name, count) for name, count in occurrence_count.items()]),
-                            len(self.user_greenlets),
+                        (
+                            "All users spawned: %s (%i total running)"
+                            % (
+                                ", ".join(
+                                    "%s: %d" % (name, count)
+                                    for name, count in occurrence_count.items()
+                                ),
+                                len(self.user_greenlets),
+                            )
                         )
                     )
+
                     self.environment.events.spawning_complete.fire(user_count=len(self.user_greenlets))
                     return
 
@@ -287,14 +293,14 @@ class Runner:
                      If False (the default), a greenlet that spawns the users will be
                      started and the call to this method will return immediately.
         """
-        if self.state != STATE_RUNNING and self.state != STATE_SPAWNING:
+        if self.state not in [STATE_RUNNING, STATE_SPAWNING]:
             self.stats.clear_all()
             self.exceptions = {}
             self.cpu_warning_emitted = False
             self.worker_cpu_warning_emitted = False
             self.target_user_count = user_count
 
-        if self.state != STATE_INIT and self.state != STATE_STOPPED:
+        if self.state not in [STATE_INIT, STATE_STOPPED]:
             logger.debug(
                 "Updating running test with %d users, %.2f spawn rate and wait=%r" % (user_count, spawn_rate, wait)
             )
@@ -326,7 +332,7 @@ class Runner:
 
     def shape_worker(self):
         logger.info("Shape worker starting")
-        while self.state == STATE_INIT or self.state == STATE_SPAWNING or self.state == STATE_RUNNING:
+        while self.state in [STATE_INIT, STATE_SPAWNING, STATE_RUNNING]:
             new_state = self.environment.shape_class.tick()
             if new_state is None:
                 logger.info("Shape test stopping")
@@ -395,7 +401,7 @@ class LocalRunner(Runner):
                 "Your selected spawn rate is very high (>100), and this is known to sometimes cause issues. Do you really need to ramp up that fast?"
             )
 
-        if self.state != STATE_RUNNING and self.state != STATE_SPAWNING:
+        if self.state not in [STATE_RUNNING, STATE_SPAWNING]:
             # if we're not already running we'll fire the test_start event
             self.environment.events.test_start.fire(environment=self.environment)
 
@@ -509,7 +515,7 @@ class MasterRunner(DistributedRunner):
 
     @property
     def user_count(self):
-        return sum([c.user_count for c in self.clients.values()])
+        return sum(c.user_count for c in self.clients.values())
 
     def cpu_log_warning(self):
         warning_emitted = Runner.cpu_log_warning(self)
@@ -543,7 +549,7 @@ class MasterRunner(DistributedRunner):
                 "Your selected spawn rate is very high (>100/worker), and this is known to sometimes cause issues. Do you really need to ramp up that fast?"
             )
 
-        if self.state != STATE_RUNNING and self.state != STATE_SPAWNING:
+        if self.state not in [STATE_RUNNING, STATE_SPAWNING]:
             self.stats.clear_all()
             self.exceptions = {}
             self.environment.events.test_start.fire(environment=self.environment)
@@ -590,9 +596,14 @@ class MasterRunner(DistributedRunner):
 
     def check_stopped(self):
         if (
-            not self.state == STATE_INIT
-            and not self.state == STATE_STOPPED
-            and all(map(lambda x: x.state != STATE_RUNNING and x.state != STATE_SPAWNING, self.clients.all))
+            self.state != STATE_INIT
+            and self.state != STATE_STOPPED
+            and all(
+                map(
+                    lambda x: x.state not in [STATE_RUNNING, STATE_SPAWNING],
+                    self.clients.all,
+                )
+            )
         ):
             self.update_state(STATE_STOPPED)
 
@@ -641,12 +652,12 @@ class MasterRunner(DistributedRunner):
                     "Client %r reported as ready. Currently %i clients ready to swarm."
                     % (id, len(self.clients.ready + self.clients.running + self.clients.spawning))
                 )
-                if self.state == STATE_RUNNING or self.state == STATE_SPAWNING:
+                if self.state in [STATE_RUNNING, STATE_SPAWNING]:
                     # balance the load distribution when new client joins
                     self.start(self.target_user_count, self.spawn_rate)
-                # emit a warning if the worker's clock seem to be out of sync with our clock
-                # if abs(time() - msg.data["time"]) > 5.0:
-                #    warnings.warn("The worker node's clock seem to be out of sync. For the statistics to be correct the different locust servers need to have synchronized clocks.")
+                        # emit a warning if the worker's clock seem to be out of sync with our clock
+                        # if abs(time() - msg.data["time"]) > 5.0:
+                        #    warnings.warn("The worker node's clock seem to be out of sync. For the statistics to be correct the different locust servers need to have synchronized clocks.")
             elif msg.type == "client_stopped":
                 del self.clients[msg.node_id]
                 logger.info("Removing %s client from running clients" % (msg.node_id))

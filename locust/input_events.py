@@ -36,7 +36,7 @@ class UnixKeyPoller:
 
     def poll(_self):
         dr, dw, de = select.select([sys.stdin], [], [], 0)
-        if not dr == []:
+        if dr != []:
             return sys.stdin.read(1)
         return None
 
@@ -64,12 +64,15 @@ class WindowsKeyPoller:
         if not events_peek:
             return None
 
-        if not len(events_peek) == self.cur_event_length:
+        if len(events_peek) != self.cur_event_length:
             for cur_event in events_peek[self.cur_event_length :]:
-                if cur_event.EventType == KEY_EVENT:
-                    if ord(cur_event.Char) and cur_event.KeyDown:
-                        cur_char = str(cur_event.Char)
-                        self.captured_chars.append(cur_char)
+                if (
+                    cur_event.EventType == KEY_EVENT
+                    and ord(cur_event.Char)
+                    and cur_event.KeyDown
+                ):
+                    cur_char = str(cur_event.Char)
+                    self.captured_chars.append(cur_char)
 
             self.cur_event_length = len(events_peek)
 

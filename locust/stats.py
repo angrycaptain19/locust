@@ -180,7 +180,8 @@ class RequestStats:
         return [
             self.entries[key].get_stripped_report()
             for key in self.entries.keys()
-            if not (self.entries[key].num_requests == 0 and self.entries[key].num_failures == 0)
+            if self.entries[key].num_requests != 0
+            or self.entries[key].num_failures != 0
         ]
 
     def serialize_errors(self):
@@ -561,8 +562,7 @@ class StatsEntry:
         # when trying to fetch the cached response_times. We construct this list in such a way
         # that it's ordered by preference by starting to add t-10, then t-11, t-9, t-12, t-8,
         # and so on
-        acceptable_timestamps = []
-        acceptable_timestamps.append(t - CURRENT_RESPONSE_TIME_PERCENTILE_WINDOW)
+        acceptable_timestamps = [t - CURRENT_RESPONSE_TIME_PERCENTILE_WINDOW]
         for i in range(1, 9):
             acceptable_timestamps.append(t - CURRENT_RESPONSE_TIME_PERCENTILE_WINDOW - i)
             acceptable_timestamps.append(t - CURRENT_RESPONSE_TIME_PERCENTILE_WINDOW + i)
@@ -592,7 +592,9 @@ class StatsEntry:
 
         return tpl % (
             (self.method, self.name)
-            + tuple([self.get_response_time_percentile(p) for p in PERCENTILES_TO_REPORT])
+            + tuple(
+                self.get_response_time_percentile(p) for p in PERCENTILES_TO_REPORT
+            )
             + (self.num_requests,)
         )
 
@@ -610,7 +612,7 @@ class StatsEntry:
 
         if len(self.response_times_cache) > cache_size:
             # only keep the latest 20 response_times dicts
-            for i in range(len(self.response_times_cache) - cache_size):
+            for _ in range(len(self.response_times_cache) - cache_size):
                 self.response_times_cache.popitem(last=False)
 
 
@@ -698,7 +700,7 @@ def setup_distributed_stats_event_listeners(events, stats):
         for stats_data in data["stats"]:
             entry = StatsEntry.unserialize(stats_data)
             request_key = (entry.name, entry.method)
-            if not request_key in stats.entries:
+            if request_key not in stats.entries:
                 stats.entries[request_key] = StatsEntry(stats, entry.name, entry.method, use_response_times_cache=True)
             stats.entries[request_key].extend(entry)
 

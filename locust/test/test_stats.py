@@ -615,14 +615,13 @@ class TestStatsEntryResponseTimesCache(unittest.TestCase):
 class TestStatsEntry(unittest.TestCase):
     def parse_string_output(self, text):
         tokenlist = re.split(r"[\s\(\)%|]+", text.strip())
-        tokens = {
+        return {
             "method": tokenlist[0],
             "name": tokenlist[1],
             "request_count": int(tokenlist[2]),
             "failure_count": int(tokenlist[3]),
             "failure_percentage": float(tokenlist[4]),
         }
-        return tokens
 
     def setUp(self, *args, **kwargs):
         super().setUp(*args, **kwargs)
