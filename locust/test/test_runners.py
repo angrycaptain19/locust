@@ -100,7 +100,7 @@ class TestLocustRunner(LocustTestCase):
         # Construct a {UserClass => count} dict from a list of user classes
         distribution = {}
         for user_class in classes:
-            if not user_class in distribution:
+            if user_class not in distribution:
                 distribution[user_class] = 0
             distribution[user_class] += 1
         expected_str = str({k.__name__: v for k, v in expected_distribution.items()})
@@ -125,8 +125,7 @@ class TestLocustRunner(LocustTestCase):
 
                 @task
                 def cpu_task(self):
-                    for i in range(1000000):
-                        _ = 3 / 2
+                    _ = 3 / 2
 
             environment = Environment(user_classes=[CpuUser])
             runner = LocalRunner(environment)
@@ -1104,10 +1103,7 @@ class TestMasterRunner(LocustTestCase):
             master.start(7, 7)
             self.assertEqual(5, len(server.outbox))
 
-            num_users = 0
-            for _, msg in server.outbox:
-                num_users += msg.data["num_users"]
-
+            num_users = sum(msg.data["num_users"] for _, msg in server.outbox)
             self.assertEqual(7, num_users, "Total number of locusts that would have been spawned is not 7")
 
     def test_spawn_fewer_locusts_than_workers(self):
@@ -1119,10 +1115,7 @@ class TestMasterRunner(LocustTestCase):
             master.start(2, 2)
             self.assertEqual(5, len(server.outbox))
 
-            num_users = 0
-            for _, msg in server.outbox:
-                num_users += msg.data["num_users"]
-
+            num_users = sum(msg.data["num_users"] for _, msg in server.outbox)
             self.assertEqual(2, num_users, "Total number of locusts that would have been spawned is not 2")
 
     def test_custom_shape_scale_up(self):

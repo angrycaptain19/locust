@@ -1,9 +1,10 @@
 import subprocess
 import os
 
-github_api_token = (
-    os.getenv("CHANGELOG_GITHUB_TOKEN") if os.getenv("CHANGELOG_GITHUB_TOKEN") else input("Enter Github API token: ")
+github_api_token = os.getenv("CHANGELOG_GITHUB_TOKEN") or input(
+    "Enter Github API token: "
 )
+
 version = input("Enter Locust version number (--future-release argument): ")
 
 cmd = [

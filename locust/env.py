@@ -77,11 +77,7 @@ class Environment:
         catch_exceptions=True,
         parsed_options=None,
     ):
-        if events:
-            self.events = events
-        else:
-            self.events = Events()
-
+        self.events = events or Events()
         self.user_classes = user_classes
         self.shape_class = shape_class
         self.tags = tags

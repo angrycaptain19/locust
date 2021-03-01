@@ -91,11 +91,7 @@ def load_locustfile(path):
 
     # Find shape class, if any, return it
     shape_classes = [value for name, value in vars(imported).items() if is_shape_class(value)]
-    if shape_classes:
-        shape_class = shape_classes[0]()
-    else:
-        shape_class = None
-
+    shape_class = shape_classes[0]() if shape_classes else None
     return imported.__doc__, user_classes, shape_class
 
 

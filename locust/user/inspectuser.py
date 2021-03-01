@@ -32,7 +32,7 @@ def get_task_ratio_dict(tasks, total=False, parent_ratio=1.0):
         ratio[task] += task.weight if hasattr(task, "weight") else 1
 
     # get percentage
-    ratio_percent = dict((k, float(v) / divisor) for k, v in ratio.items())
+    ratio_percent = {k: float(v) / divisor for k, v in ratio.items()}
 
     task_dict = {}
     for locust, ratio in ratio_percent.items():

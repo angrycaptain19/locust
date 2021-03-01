@@ -34,18 +34,20 @@ def find_locustfile(locustfile):
         # If so, expand home-directory markers and test for existence
         for name in names:
             expanded = os.path.expanduser(name)
-            if os.path.exists(expanded):
-                if name.endswith(".py") or _is_package(expanded):
-                    return os.path.abspath(expanded)
+            if os.path.exists(expanded) and (
+                name.endswith(".py") or _is_package(expanded)
+            ):
+                return os.path.abspath(expanded)
     else:
         # Otherwise, start in cwd and work downwards towards filesystem root
         path = os.path.abspath(".")
         while True:
             for name in names:
                 joined = os.path.join(path, name)
-                if os.path.exists(joined):
-                    if name.endswith(".py") or _is_package(joined):
-                        return os.path.abspath(joined)
+                if os.path.exists(joined) and (
+                    name.endswith(".py") or _is_package(joined)
+                ):
+                    return os.path.abspath(joined)
             parent_path = os.path.dirname(path)
             if parent_path == path:
                 # we've reached the root path which has been checked this iteration

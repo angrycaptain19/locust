@@ -236,26 +236,30 @@ class WebUI:
         @self.auth_required_if_enabled
         @memoize(timeout=DEFAULT_CACHE_TIME, dynamic_timeout=True)
         def request_stats():
-            stats = []
-
-            for s in chain(sort_stats(self.environment.runner.stats.entries), [environment.runner.stats.total]):
-                stats.append(
-                    {
-                        "method": s.method,
-                        "name": s.name,
-                        "safe_name": escape(s.name, quote=False),
-                        "num_requests": s.num_requests,
-                        "num_failures": s.num_failures,
-                        "avg_response_time": s.avg_response_time,
-                        "min_response_time": 0 if s.min_response_time is None else proper_round(s.min_response_time),
-                        "max_response_time": proper_round(s.max_response_time),
-                        "current_rps": s.current_rps,
-                        "current_fail_per_sec": s.current_fail_per_sec,
-                        "median_response_time": s.median_response_time,
-                        "ninetieth_response_time": s.get_response_time_percentile(0.9),
-                        "avg_content_length": s.avg_content_length,
-                    }
+            stats = [
+                {
+                    "method": s.method,
+                    "name": s.name,
+                    "safe_name": escape(s.name, quote=False),
+                    "num_requests": s.num_requests,
+                    "num_failures": s.num_failures,
+                    "avg_response_time": s.avg_response_time,
+                    "min_response_time": 0
+                    if s.min_response_time is None
+                    else proper_round(s.min_response_time),
+                    "max_response_time": proper_round(s.max_response_time),
+                    "current_rps": s.current_rps,
+                    "current_fail_per_sec": s.current_fail_per_sec,
+                    "median_response_time": s.median_response_time,
+                    "ninetieth_response_time": s.get_response_time_percentile(0.9),
+                    "avg_content_length": s.avg_content_length,
+                }
+                for s in chain(
+                    sort_stats(self.environment.runner.stats.entries),
+                    [environment.runner.stats.total],
                 )
+            ]
+
 
             errors = []
             for e in environment.runner.errors.values():
@@ -271,7 +275,7 @@ class WebUI:
                 report["stats"] += [stats[-1]]
 
             if stats:
-                report["total_rps"] = stats[len(stats) - 1]["current_rps"]
+                report["total_rps"] = stats[-1]["current_rps"]
                 report["fail_ratio"] = environment.runner.stats.total.fail_ratio
                 report[
                     "current_response_time_percentile_95"
@@ -282,17 +286,12 @@ class WebUI:
 
             is_distributed = isinstance(environment.runner, MasterRunner)
             if is_distributed:
-                workers = []
-                for worker in environment.runner.clients.values():
-                    workers.append(
-                        {
+                workers = [{
                             "id": worker.id,
                             "state": worker.state,
                             "user_count": worker.user_count,
                             "cpu_usage": worker.cpu_usage,
-                        }
-                    )
-
+                        } for worker in environment.runner.clients.values()]
                 report["workers"] = workers
 
             report["state"] = environment.runner.state
@@ -357,13 +356,14 @@ class WebUI:
 
         @wraps(view_func)
         def wrapper(*args, **kwargs):
-            if self.app.config["BASIC_AUTH_ENABLED"]:
-                if self.auth.authenticate():
-                    return view_func(*args, **kwargs)
-                else:
-                    return self.auth.challenge()
-            else:
+            if (
+                self.app.config["BASIC_AUTH_ENABLED"]
+                and self.auth.authenticate()
+                or not self.app.config["BASIC_AUTH_ENABLED"]
+            ):
                 return view_func(*args, **kwargs)
+            else:
+                return self.auth.challenge()
 
         return wrapper
 
@@ -372,7 +372,7 @@ class WebUI:
         if self.environment.host:
             host = self.environment.host
         elif self.environment.runner.user_classes:
-            all_hosts = set([l.host for l in self.environment.runner.user_classes])
+            all_hosts = {l.host for l in self.environment.runner.user_classes}
             if len(all_hosts) == 1:
                 host = list(all_hosts)[0]
             else:
@@ -386,11 +386,7 @@ class WebUI:
         options = self.environment.parsed_options
 
         is_distributed = isinstance(self.environment.runner, MasterRunner)
-        if is_distributed:
-            worker_count = self.environment.runner.worker_count
-        else:
-            worker_count = 0
-
+        worker_count = self.environment.runner.worker_count if is_distributed else 0
         stats = self.environment.runner.stats
 
         self.template_args = {
